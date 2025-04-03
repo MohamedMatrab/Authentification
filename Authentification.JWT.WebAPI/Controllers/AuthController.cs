@@ -116,6 +116,7 @@ public class AuthController(IUserService userService, IJwtService jwtService,ILo
     [HttpGet("protected")]
     public IActionResult ProtectedEndpoint()
     {
+        _logger.LogInformation("Getting Protected Data !");
         return Ok("You have accessed a protected endpoint!");
 
     }
