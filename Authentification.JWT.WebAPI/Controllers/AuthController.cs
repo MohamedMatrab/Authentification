@@ -2,13 +2,14 @@
 using Authentification.JWT.Service.Dto;
 using Authentification.JWT.Service.Services;
 using Authentification.JWT.WebAPI.ActionModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Authentification.JWT.WebAPI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController(IUserService userService,IJwtService jwtService) : ControllerBase
+public class AuthController(IUserService userService, IJwtService jwtService) : ControllerBase
 {
     private readonly IUserService _userService = userService;
 
@@ -95,5 +96,14 @@ public class AuthController(IUserService userService,IJwtService jwtService) : C
         {
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error during login", error = ex.Message });
         }
+    }
+
+
+    [Authorize]
+    [HttpGet("protected")]
+    public IActionResult ProtectedEndpoint()
+    {
+        return Ok("You have accessed a protected endpoint!");
+
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Authentification.JWT.WebAPI.ActionModels;
 
-public class RegisterModel
+public record RegisterModel
 {
     public string Username { get; set; } = default!;
     public string Email { get; set; } = default!;

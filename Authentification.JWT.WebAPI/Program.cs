@@ -12,14 +12,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(typeof(UserToDtoMapper));
 
-
-builder.Services.AddDataAccessLayer(builder.Configuration).AddService();
+builder.Services
+    .AddDataAccessLayer(builder.Configuration)
+    .AddService(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", builder =>
     {
-        builder.AllowAnyOrigin()   // Autoriser toutes les origines (pour les tests)
+        builder.AllowAnyOrigin()
                .AllowAnyMethod()
                .AllowAnyHeader();
     });

@@ -1,5 +1,7 @@
-﻿using Authentification.JWT.DAL.Models;
-using Microsoft.Extensions.Configuration;
+﻿using Authentification.JWT.DAL.Data;
+using Authentification.JWT.DAL.Models;
+using Authentification.JWT.Service.Dto;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -7,27 +9,16 @@ using System.Text;
 
 namespace Authentification.JWT.Service.Services;
 
-public class JwtService : IJwtService
+public class JwtService(
+    IOptionsMonitor<JwtConfig> jwtConfig,
+    ApplicationDbContext dbContext)
+    : IJwtService
 {
-    private readonly IConfiguration _configuration;
-    private readonly string _secretKey;
-    private readonly string _issuer;
-    private readonly string _audience;
-    private readonly int _expiryMinutes;
-
-    public JwtService(IConfiguration configuration)
-    {
-        _configuration = configuration;
-        _secretKey = _configuration["Jwt:SecretKey"] ?? throw new ArgumentNullException("JWT Secret Key is not configured");
-        _issuer = _configuration["Jwt:Issuer"] ?? "DefaultIssuer";
-        _audience = _configuration["Jwt:Audience"] ?? "DefaultAudience";
-        _expiryMinutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"], out int minutes) ? minutes : 60;
-    }
+    private readonly JwtConfig _jwtConfig = jwtConfig.CurrentValue;
+    private readonly ApplicationDbContext _dbContext = dbContext;
     public string GenerateToken(User user)
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
-        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
+        var jwtTokenHandler = new JwtSecurityTokenHandler();
         var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -36,14 +27,45 @@ public class JwtService : IJwtService
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
 
-        var token = new JwtSecurityToken(
-            issuer: _issuer,
-            audience: _audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_expiryMinutes),
-            signingCredentials: credentials
-        );
+        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_jwtConfig.SecretKey));
+        var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var expirationDate = DateTime.UtcNow.AddMinutes(_jwtConfig.ExpiryMinutes);
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = expirationDate,
+            Issuer = _jwtConfig.Issuer,
+            Audience = _jwtConfig.Audience,
+            SigningCredentials = signingCredentials
+        };
+
+        var token = jwtTokenHandler.CreateToken(tokenDescriptor);
+        var jwtToken = jwtTokenHandler.WriteToken(token);
+
+        var refreshToken = new JwtRefreshToken()
+        {
+            JwtId = token.Id,
+            IsUsed = false,
+            IsRevoked = false,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow,
+            ExpiredAt = DateTime.UtcNow.AddMonths(1),
+            Token = RandomString + Guid.NewGuid()
+        };
+
+        _dbContext.JwtRefreshTokens.Add(refreshToken);
+        _dbContext.SaveChanges();
+
+        return jwtToken;
+    }
+    private string RandomString
+    {
+        get
+        {
+            var random = new Random();
+            const string chars = "ABCDEFGHIJKLMNOPRSTUVYZWX0123456789";
+            return new string(Enumerable.Repeat(chars, 35).Select(n => n[random.Next(n.Length)]).ToArray());
+        }
     }
 }
