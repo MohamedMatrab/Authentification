@@ -1,4 +1,5 @@
-﻿using Authentification.JWT.Service.Dto;
+﻿using Authentification.JWT.DAL;
+using Authentification.JWT.Service.Dto;
 using Authentification.JWT.Service.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -12,8 +13,6 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddService(this IServiceCollection services, IConfiguration configuration)
     {
-       
-
         var jwtConfig = configuration.GetSection("Jwt").Get<JwtConfig>();
 
         var key = Encoding.ASCII.GetBytes(jwtConfig?.SecretKey!);
@@ -40,6 +39,8 @@ public static class DependencyInjection
             jwt.TokenValidationParameters = tokenValidationParams;
         });
         services.Configure<JwtConfig>(configuration.GetSection("Jwt"));
+
+        services.AddDataAccessLayer(configuration);
 
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IJwtService, JwtService>();

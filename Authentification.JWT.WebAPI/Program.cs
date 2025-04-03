@@ -1,19 +1,32 @@
-using Authentification.JWT.DAL;
 using Authentification.JWT.Service;
 using Authentification.JWT.Service.Mappers;
+using NLog;
+using NLog.Extensions.Logging;
+using NLog.Web;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+//var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
+var logger = NLog.LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
+logger.Debug("init main");
+builder.Logging.ClearProviders();
+builder.Host.UseNLog();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddLogging(loggingBuilder =>
+{
+    loggingBuilder.ClearProviders();
+    loggingBuilder.AddNLog();
+});
+
 builder.Services.AddAutoMapper(typeof(UserToDtoMapper));
 
 builder.Services
-    .AddDataAccessLayer(builder.Configuration)
     .AddService(builder.Configuration);
 
 builder.Services.AddCors(options =>

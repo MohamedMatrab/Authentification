@@ -9,18 +9,23 @@ namespace Authentification.JWT.WebAPI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController(IUserService userService, IJwtService jwtService) : ControllerBase
+public class AuthController(IUserService userService, IJwtService jwtService,ILogger<AuthController> logger) : ControllerBase
 {
     private readonly IUserService _userService = userService;
-
+    private readonly ILogger<AuthController> _logger = logger;
     private readonly IJwtService _jwtService = jwtService;
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterModel model)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid registration model");
+            return BadRequest(ModelState);
+        }
         try
         {
+            _logger.LogInformation("Registering user with username: {Username}", model.Username);
             UserDto? existingUser;
             try
             {
@@ -31,7 +36,10 @@ public class AuthController(IUserService userService, IJwtService jwtService) : 
                 existingUser = null;
             }
             if (existingUser != null)
+            {
+                _logger.LogWarning("Username {Username} is already taken", model.Username);
                 return Conflict(new { message = "Username is already taken" });
+            }
 
             var user = await _userService.RegisterUserAsync(model.Username, model.Email, model.Password);
 
@@ -44,6 +52,7 @@ public class AuthController(IUserService userService, IJwtService jwtService) : 
 
             var token = _jwtService.GenerateToken(userEntity);
 
+            _logger.LogInformation("User {Username} registered successfully", model.Username);
             return Ok(new
             {
                 user.Id,
@@ -54,6 +63,7 @@ public class AuthController(IUserService userService, IJwtService jwtService) : 
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error registering user with username: {Username}", model.Username);
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error registering user", error = ex.Message });
         }
     }
@@ -63,6 +73,7 @@ public class AuthController(IUserService userService, IJwtService jwtService) : 
     {
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("Invalid login model");
             return BadRequest(ModelState);
         }
 
@@ -84,6 +95,7 @@ public class AuthController(IUserService userService, IJwtService jwtService) : 
 
             var token = _jwtService.GenerateToken(userEntity);
 
+            _logger.LogInformation("User {Username} logged in successfully", model.Username);
             return Ok(new
             {
                 user.Id,
@@ -94,6 +106,7 @@ public class AuthController(IUserService userService, IJwtService jwtService) : 
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error during login for user: {Username}", model.Username);
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error during login", error = ex.Message });
         }
     }
