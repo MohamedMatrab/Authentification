@@ -1,6 +1,7 @@
 ﻿using Authentification.JWT.DAL.Models;
 using Authentification.JWT.Service.Dto;
 using AutoMapper;
+using SharedDependencies.Dtos;
 
 namespace Authentification.JWT.Service.Mappers;
 

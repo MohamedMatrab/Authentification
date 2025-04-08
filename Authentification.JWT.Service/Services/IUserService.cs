@@ -1,4 +1,5 @@
 ﻿using Authentification.JWT.Service.Dto;
+using SharedDependencies.Dtos;
 
 namespace Authentification.JWT.Service.Services;
 

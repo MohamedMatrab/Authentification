@@ -3,6 +3,7 @@ using Authentification.JWT.DAL.Repositories;
 using Authentification.JWT.Service.Dto;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using SharedDependencies.Dtos;
 
 namespace Authentification.JWT.Service.Services;
 public class UserService(IUserRepository userRepository,IMapper mapper,ILogger<UserService> logger) : IUserService
